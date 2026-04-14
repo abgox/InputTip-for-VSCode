@@ -1,0 +1,7 @@
+{
+  "recommendations": [
+    "abgox.filename-lint",
+    "dbaeumer.vscode-eslint",
+    "ms-vscode.extension-test-runner"
+  ]
+}

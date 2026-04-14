@@ -1,0 +1,205 @@
+{
+  "name": "inputtip",
+  "displayName": "InputTip for VSCode",
+  "description": "基于 InputTip 实现的实时修改光标、边框等颜色以提示输入法状态",
+  "type": "module",
+  "author": "abgox",
+  "publisher": "abgox",
+  "version": "0.0.1",
+  "license": "MIT",
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "InputTip",
+    "cursor",
+    "color",
+    "ime",
+    "input method",
+    "input method state"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/abgox/InputTip-for-VSCode"
+  },
+  "homepage": "https://github.com/abgox/InputTip-for-VSCode",
+  "icon": "icon.png",
+  "bugs": {
+    "url": "https://github.com/abgox/InputTip-for-VSCode/issues"
+  },
+  "engines": {
+    "vscode": "^1.99.0"
+  },
+  "sponsor": {
+    "url": "https://abgox.com/donate"
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "InputTip for VSCode",
+      "description": "基于 InputTip 实现的实时修改光标、边框等颜色以提示输入法状态",
+      "properties": {
+        "InputTip.color": {
+          "type": "object",
+          "description": "基于 InputTip 实现的实时修改光标、边框等颜色以提示输入法状态",
+          "examples": [
+            {
+              "CN": {
+                "editorCursor.foreground": "#fd5454",
+                "terminalCursor.foreground": "#fd5454"
+              },
+              "EN": {
+                "editorCursor.foreground": "#6666fa",
+                "terminalCursor.foreground": "#6666fa"
+              },
+              "Caps": {
+                "editorCursor.foreground": "#4d9805",
+                "terminalCursor.foreground": "#4d9805"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "CN": {
+              "type": "object",
+              "description": "中文状态下的颜色",
+              "additionalProperties": false,
+              "properties": {
+                "editorCursor.foreground": {
+                  "type": "string",
+                  "description": "编辑器光标",
+                  "minLength": 1,
+                  "pattern": "^#[0-9a-fA-F]{3,8}$",
+                  "format": "color",
+                  "examples": [
+                    "#fd5454"
+                  ]
+                },
+                "terminalCursor.foreground": {
+                  "type": "string",
+                  "description": "终端光标",
+                  "minLength": 1,
+                  "pattern": "^#[0-9a-fA-F]{3,8}$",
+                  "format": "color",
+                  "examples": [
+                    "#fd5454"
+                  ]
+                },
+                "window.activeBorder": {
+                  "type": "string",
+                  "description": "窗口处于活动状态时用于窗口边框的颜色",
+                  "minLength": 1,
+                  "pattern": "^#[0-9a-fA-F]{3,8}$",
+                  "format": "color",
+                  "examples": [
+                    "#fd5454"
+                  ]
+                }
+              }
+            },
+            "EN": {
+              "type": "object",
+              "description": "英文状态下的颜色",
+              "additionalProperties": false,
+              "properties": {
+                "editorCursor.foreground": {
+                  "type": "string",
+                  "description": "编辑器光标",
+                  "minLength": 1,
+                  "pattern": "^#[0-9a-fA-F]{3,8}$",
+                  "format": "color",
+                  "examples": [
+                    "#6666fa"
+                  ]
+                },
+                "terminalCursor.foreground": {
+                  "type": "string",
+                  "description": "终端光标",
+                  "minLength": 1,
+                  "pattern": "^#[0-9a-fA-F]{3,8}$",
+                  "format": "color",
+                  "examples": [
+                    "#6666fa"
+                  ]
+                },
+                "window.activeBorder": {
+                  "type": "string",
+                  "description": "窗口处于活动状态时用于窗口边框的颜色",
+                  "minLength": 1,
+                  "pattern": "^#[0-9a-fA-F]{3,8}$",
+                  "format": "color",
+                  "examples": [
+                    "#6666fa"
+                  ]
+                }
+              }
+            },
+            "Caps": {
+              "type": "object",
+              "description": "大写状态下的颜色",
+              "additionalProperties": false,
+              "properties": {
+                "editorCursor.foreground": {
+                  "type": "string",
+                  "description": "编辑器光标",
+                  "minLength": 1,
+                  "pattern": "^#[0-9a-fA-F]{3,8}$",
+                  "format": "color",
+                  "examples": [
+                    "#4d9805"
+                  ]
+                },
+                "terminalCursor.foreground": {
+                  "type": "string",
+                  "description": "终端光标",
+                  "minLength": 1,
+                  "pattern": "^#[0-9a-fA-F]{3,8}$",
+                  "format": "color",
+                  "examples": [
+                    "#4d9805"
+                  ]
+                },
+                "window.activeBorder": {
+                  "type": "string",
+                  "description": "窗口处于活动状态时用于窗口边框的颜色",
+                  "minLength": 1,
+                  "pattern": "^#[0-9a-fA-F]{3,8}$",
+                  "format": "color",
+                  "examples": [
+                    "#4d9805"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test",
+    "package": "vsce package",
+    "publish": "npm run compile && vsce publish",
+    "tsc": "tsc --init"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@types/vscode": "^1.99.0",
+    "@typescript-eslint/eslint-plugin": "^8.28.0",
+    "@typescript-eslint/parser": "^8.28.0",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1",
+    "@vscode/vsce": "^3.3.2",
+    "eslint": "^9.23.0",
+    "ovsx": "^0.10.8",
+    "typescript": "^5.8.2"
+  }
+}

@@ -1,0 +1,33 @@
+name: Publish Extension
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  vsce:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: latest
+      - run: npm install
+      - run: npm run compile
+      - run: npx vsce publish
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+  ovsx:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: latest
+      - run: npm install
+      - run: npm run compile
+      - run: npx ovsx publish
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}

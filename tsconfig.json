@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "module": "nodenext",
+    "target": "ESNext",
+    "outDir": "out",
+    "types": ["node"],
+    "lib": ["ESNext"],
+    "sourceMap": true,
+    "rootDir": "src",
+    "strict": true
+  }
+}
