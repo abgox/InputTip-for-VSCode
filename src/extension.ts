@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { promises as fs, watch } from "node:fs";
+import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
 
@@ -9,6 +9,7 @@ let colorKeys: string[] = [];
 let lastAppliedState: string | undefined;
 let isProcessing = false;
 let pendingState: string | undefined;
+let pendingForce = false;
 let originalColors: Record<string, string | null | undefined> = {};
 let fileWatcher: vscode.Disposable | undefined;
 let currentAbortController: AbortController | undefined;
@@ -35,7 +36,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.window.onDidChangeWindowState((e) => {
       if (e.focused) {
-        void refreshFromFile(true);
+        setTimeout(() => void refreshFromFile(true), 100);
       }
     }),
     vscode.workspace.onDidChangeConfiguration((e) => {
@@ -45,9 +46,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
     {
       dispose: () => {
-        if (fileWatcher) {
-          fileWatcher.dispose();
-        }
+        stopWatcher();
         if (currentAbortController) {
           currentAbortController.abort();
         }
@@ -61,29 +60,32 @@ export async function activate(context: vscode.ExtensionContext) {
   setupFileWatcher();
   void refreshFromFile(true);
 
-  output.info(`Extension activated with keys: ${colorKeys.join(", ")}`);
+  output.info(`Extension activated.`);
+  output.info(`Color keys: ${colorKeys.join(", ")}`);
+  output.info(`State path: ${STATE_FILE}`);
 }
 
 function setupFileWatcher() {
+  stopWatcher();
+
+  const watcher = vscode.workspace.createFileSystemWatcher(
+    new vscode.RelativePattern(
+      path.dirname(STATE_FILE),
+      path.basename(STATE_FILE),
+    ),
+  );
+
+  watcher.onDidChange(() => void refreshFromFile());
+  watcher.onDidCreate(() => void refreshFromFile());
+  watcher.onDidDelete(() => void refreshFromFile(true));
+
+  fileWatcher = watcher;
+}
+
+function stopWatcher() {
   if (fileWatcher) {
     fileWatcher.dispose();
-  }
-
-  try {
-    const nodeWatcher = watch(
-      path.dirname(STATE_FILE),
-      (event: string, filename: string | null) => {
-        if (filename === path.basename(STATE_FILE)) {
-          void refreshFromFile();
-        }
-      },
-    );
-    nodeWatcher.on("error", (err: Error) =>
-      vscode.window.showErrorMessage(`Watcher error: ${err.message}`),
-    );
-    fileWatcher = { dispose: () => nodeWatcher.close() };
-  } catch (err) {
-    vscode.window.showErrorMessage(`Failed to start watcher: ${err}`);
+    fileWatcher = undefined;
   }
 }
 
@@ -96,10 +98,12 @@ async function refreshFromFile(force = false) {
   }
   const controller = new AbortController();
   currentAbortController = controller;
-  const { signal } = controller;
 
   try {
-    const content = await fs.readFile(STATE_FILE, { encoding: "utf8", signal });
+    const content = await fs.readFile(STATE_FILE, {
+      encoding: "utf8",
+      signal: controller.signal,
+    });
     const state = content.trim();
 
     if (force || state !== lastAppliedState) {
@@ -109,16 +113,15 @@ async function refreshFromFile(force = false) {
     if (err.name === "AbortError") {
       return;
     }
+
     if (err.code === "ENOENT") {
-      if (lastAppliedState !== undefined || force) {
-        vscode.window.showWarningMessage(
-          `The state file not found: ${STATE_FILE}`,
-        );
-        await dispatchUpdate("", force);
-      }
+      vscode.window.showWarningMessage(
+        `The state file not found: ${STATE_FILE}`,
+      );
+      await dispatchUpdate("", force);
       return;
     }
-    output.debug(`Read skipped: ${err}`);
+    output.debug(`Read error: ${err.message}`);
   } finally {
     if (currentAbortController === controller) {
       currentAbortController = undefined;
@@ -128,6 +131,10 @@ async function refreshFromFile(force = false) {
 
 async function dispatchUpdate(state: string, force: boolean) {
   pendingState = state;
+  if (force) {
+    pendingForce = true;
+  }
+
   if (isProcessing) {
     return;
   }
@@ -135,25 +142,20 @@ async function dispatchUpdate(state: string, force: boolean) {
   try {
     while (pendingState !== undefined) {
       const target = pendingState;
-      const needsUpdate = force || target !== lastAppliedState;
-      pendingState = undefined;
+      const currentForce = pendingForce;
 
-      if (needsUpdate) {
-        await syncColors(target);
-        lastAppliedState = target;
-        force = false;
-      }
+      pendingState = undefined;
+      pendingForce = false;
+
+      lastAppliedState = target;
+      await syncColors(target, currentForce);
     }
   } finally {
     isProcessing = false;
   }
 }
 
-async function syncColors(state: string) {
-  if (!vscode.window.state.focused) {
-    return;
-  }
-
+async function syncColors(state: string, force: boolean) {
   if (syncTimer) {
     clearTimeout(syncTimer);
   }
@@ -164,10 +166,9 @@ async function syncColors(state: string) {
         resolve();
         return;
       }
-
       isConfigUpdating = true;
       try {
-        await performActualUpdate(state);
+        await performActualUpdate(state, force);
       } catch (err: any) {
         vscode.window.showErrorMessage(
           `Failed to write 'workbench.colorCustomizations': ${err.message}`,
@@ -180,7 +181,7 @@ async function syncColors(state: string) {
   });
 }
 
-async function performActualUpdate(state: string) {
+async function performActualUpdate(state: string, force: boolean) {
   const config = vscode.workspace.getConfiguration();
   const allColorConfigs =
     config.get<Record<string, Record<string, string>>>("InputTip.color") || {};
@@ -221,7 +222,7 @@ async function performActualUpdate(state: string) {
         );
       } else {
         originalColors[key] = currentValue ?? null;
-        output.debug(`Backed up original value for: ${key}`);
+        output.debug(`Backed up: ${key} = ${currentValue}`);
       }
     }
 
@@ -233,7 +234,7 @@ async function performActualUpdate(state: string) {
     } else if (originalColors[key] !== undefined) {
       const backupValue = originalColors[key];
       if (backupValue === null) {
-        if (Object.prototype.hasOwnProperty.call(currentCustoms, key)) {
+        if (key in currentCustoms) {
           delete currentCustoms[key];
           hasChanged = true;
         }
@@ -241,15 +242,10 @@ async function performActualUpdate(state: string) {
         currentCustoms[key] = backupValue;
         hasChanged = true;
       }
-
-      if (!isKeyUsedAnywhere) {
-        delete originalColors[key];
-        output.debug(`No states use ${key} anymore. Backup cleared.`);
-      }
     }
   }
 
-  if (hasChanged) {
+  if (hasChanged || force) {
     await config.update(
       "workbench.colorCustomizations",
       currentCustoms,
@@ -260,11 +256,9 @@ async function performActualUpdate(state: string) {
 }
 
 export async function deactivate() {
+  stopWatcher();
   if (currentAbortController) {
     currentAbortController.abort();
-  }
-  if (fileWatcher) {
-    fileWatcher.dispose();
   }
   if (syncTimer) {
     clearTimeout(syncTimer);
