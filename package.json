@@ -5,7 +5,7 @@
   "type": "module",
   "author": "abgox",
   "publisher": "abgox",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "license": "MIT",
   "categories": [
     "Other"
@@ -36,15 +36,18 @@
   "activationEvents": [
     "onStartupFinished"
   ],
+  "extensionKind": [
+    "ui"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "configuration": {
       "title": "InputTip for VSCode",
-      "description": "基于 InputTip 实现的实时修改光标、边框等颜色以提示输入法状态",
+      "markdownDescription": "基于 [InputTip](https://inputtip.abgox.com) 实现的实时修改光标、边框等颜色以提示输入法状态",
       "properties": {
         "InputTip.color": {
           "type": "object",
-          "description": "基于 InputTip 实现的实时修改光标、边框等颜色以提示输入法状态",
+          "markdownDescription": "基于 [InputTip](https://inputtip.abgox.com) 实现的实时修改光标、边框等颜色以提示输入法状态",
           "examples": [
             {
               "CN": {
